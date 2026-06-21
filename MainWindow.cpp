@@ -23,13 +23,14 @@ LRESULT CMainWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     }
     case WM_COMMAND: {
         switch (wParam) {
-        case ID_BRUSH_SELECT:   SetBrushMode(BrushMode::SELECT);        break;
-        case ID_BRUSH_DOT:      SetBrushMode(BrushMode::DOT);           break;
-        case ID_BRUSH_LINE:     SetBrushMode(BrushMode::LINE);          break;
-        case ID_BRUSH_CIRCLE:   SetBrushMode(BrushMode::CIRCLE);        break;
-        case ID_BRUSH_TRIANGLE: SetBrushMode(BrushMode::TRIANGLE);      break;
-        case ID_BRUSH_RECT:     SetBrushMode(BrushMode::RECTANGLE);     break;
-        case ID_BRUSH_DELETE:   SetBrushMode(BrushMode::DELETE_SHAPE);  break;
+        case ID_BRUSH_SELECT:       SetBrushMode(BrushMode::SELECT);        break;
+        case ID_BRUSH_MULTIMOVE:    SetBrushMode(BrushMode::MULTIMOVE);     break;
+        case ID_BRUSH_DOT:          SetBrushMode(BrushMode::DOT);           break;
+        case ID_BRUSH_LINE:         SetBrushMode(BrushMode::LINE);          break;
+        case ID_BRUSH_CIRCLE:       SetBrushMode(BrushMode::CIRCLE);        break;
+        case ID_BRUSH_TRIANGLE:     SetBrushMode(BrushMode::TRIANGLE);      break;
+        case ID_BRUSH_RECT:         SetBrushMode(BrushMode::RECTANGLE);     break;
+        case ID_BRUSH_DELETE:       SetBrushMode(BrushMode::DELETE_SHAPE);  break;
         case ID_EDIT_CLEAR:
             m_Canvas->EraseAll();
             InvalidateRect(m_WndHandle, NULL, TRUE);
@@ -144,19 +145,20 @@ void CMainWindow::CreateToolBar(HWND hwnd)
 
     SendMessage(m_ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
 
-    TBBUTTON tbButtons[8]
+    TBBUTTON tbButtons[9]
     {
         { 0, ID_BRUSH_SELECT, TBSTATE_ENABLED | TBSTATE_CHECKED, BTNS_CHECK | BTNS_CHECKGROUP, {0}, 0, (INT_PTR)L"Select" },
-        { 1, ID_BRUSH_DOT, TBSTATE_ENABLED, BTNS_CHECK | BTNS_CHECKGROUP, {0}, 0, (INT_PTR)L"Point" },
-        { 2, ID_BRUSH_LINE, TBSTATE_ENABLED, BTNS_CHECK | BTNS_CHECKGROUP, {0}, 0, (INT_PTR)L"Line" },
-        { 3, ID_BRUSH_CIRCLE, TBSTATE_ENABLED, BTNS_CHECK | BTNS_CHECKGROUP, {0}, 0, (INT_PTR)L"Circle" },
-        { 4, ID_BRUSH_TRIANGLE, TBSTATE_ENABLED, BTNS_CHECK | BTNS_CHECKGROUP, {0}, 0, (INT_PTR)L"Triangle" },
-        { 5, ID_BRUSH_RECT, TBSTATE_ENABLED, BTNS_CHECK | BTNS_CHECKGROUP, {0}, 0, (INT_PTR)L"Rectangle" },
-        { 6, ID_BRUSH_DELETE, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_CHECKGROUP, {0}, 0, (INT_PTR)L"Delete" },
-        { 7, ID_EDIT_CLEAR, TBSTATE_ENABLED, BTNS_BUTTON, {0}, 0, (INT_PTR)L"Delete All" }
+        { 1, ID_BRUSH_MULTIMOVE, TBSTATE_ENABLED, BTNS_CHECK | BTNS_CHECKGROUP, {0}, 0, (INT_PTR)L"MultiMove" },
+        { 2, ID_BRUSH_DOT, TBSTATE_ENABLED, BTNS_CHECK | BTNS_CHECKGROUP, {0}, 0, (INT_PTR)L"Point" },
+        { 3, ID_BRUSH_LINE, TBSTATE_ENABLED, BTNS_CHECK | BTNS_CHECKGROUP, {0}, 0, (INT_PTR)L"Line" },
+        { 4, ID_BRUSH_CIRCLE, TBSTATE_ENABLED, BTNS_CHECK | BTNS_CHECKGROUP, {0}, 0, (INT_PTR)L"Circle" },
+        { 5, ID_BRUSH_TRIANGLE, TBSTATE_ENABLED, BTNS_CHECK | BTNS_CHECKGROUP, {0}, 0, (INT_PTR)L"Triangle" },
+        { 6, ID_BRUSH_RECT, TBSTATE_ENABLED, BTNS_CHECK | BTNS_CHECKGROUP, {0}, 0, (INT_PTR)L"Rectangle" },
+        { 7, ID_BRUSH_DELETE, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_CHECKGROUP, {0}, 0, (INT_PTR)L"Delete" },
+        { 8, ID_EDIT_CLEAR, TBSTATE_ENABLED, BTNS_BUTTON, {0}, 0, (INT_PTR)L"Delete All" }
     };
 
-    SendMessage(m_ToolBarHandle, TB_ADDBUTTONS, 8, (LPARAM)tbButtons);
+    SendMessage(m_ToolBarHandle, TB_ADDBUTTONS, 9, (LPARAM)tbButtons);
     SendMessage(m_ToolBarHandle, TB_AUTOSIZE, 0, 0);
 }
 

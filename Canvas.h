@@ -7,6 +7,7 @@
 enum class BrushMode
 {
     SELECT,
+    MULTIMOVE,
     DOT,
     LINE,
     CIRCLE,
@@ -39,15 +40,20 @@ public:
 
     void OnMouseMove(POINT pt);
 
+    CShape* HitTestAll(POINT pt, int& nHandleIdx);
+
 private:
-    std::vector<Shape*> m_vecShapes;
-    Shape* m_bSelected = nullptr;
+    std::vector<CShape*> m_vecShapes;
+    CShape* m_pSelected = nullptr;
+    std::vector<CShape*> m_vecMultiMove;
+
     BrushMode m_BrushMode = BrushMode::SELECT;
     ToolMode m_ToolMode = ToolMode::IDLE;
 
     std::vector<POINT> m_vecDrawPTs;
 
     POINT m_PreviewPT = {};
+    POINT m_LastMousePT = {};
     bool m_bPreview = false;
 
     void FinalizeShape();
@@ -55,6 +61,10 @@ private:
 
     HBITMAP m_Bitmap;
     HDC m_DCHandle;
-    int m_offW;
-    int m_offH;
+    int m_offW = 0;
+    int m_offH = 0;
+
+    int m_CurrentHandleIdx = -1;
+
+    POINT m_draggingStartPt = {};
 };

@@ -1,5 +1,6 @@
 ﻿#include "stdafx.h"
 #include "Canvas.h"
+#include "Shape.h"
 #include <cstdio>
 #include <cstdarg>
 #include <algorithm>
@@ -24,14 +25,23 @@ CCanvas::~CCanvas()
 
 void CCanvas::SetBrushMode(BrushMode mode) 
 {
+    if (m_BrushMode == BrushMode::MULTIMOVE && mode != BrushMode::MULTIMOVE)
+    {
+        for (const auto& pShape : m_vecMultiMove)
+        {
+            pShape->SetSelected(false);
+        }
+        m_vecMultiMove.clear();
+    }
+
     m_BrushMode = mode;
     m_ToolMode = ToolMode::IDLE;
     m_vecDrawPTs.clear();
     m_bPreview = false;
 
-    if (m_bSelected) {
-        m_bSelected->SetSelected(false);
-        m_bSelected = nullptr;
+    if (m_pSelected) {
+        m_pSelected->SetSelected(false);
+        m_pSelected = nullptr;
     }
 }
 
@@ -39,12 +49,58 @@ void CCanvas::OnLeftClickDown(POINT pt)
 {
     if (m_BrushMode == BrushMode::SELECT) 
     {
-        //TODO: HitTest 추가
+        int nHandleIdx = -1;
+        CShape* pHit = HitTestAll(pt, nHandleIdx);
+        
+        // 이미 선택 후 핸들을 고른 경우
+        if (nHandleIdx >= 0 && pHit == m_pSelected) {
+            m_ToolMode = ToolMode::EDIT;
+            m_CurrentHandleIdx = nHandleIdx;
+            m_draggingStartPt = pt;
+            return;
+        }
+
+        // 처음 선택 시
+        if (pHit) {
+            if (m_pSelected && m_pSelected != pHit)
+                m_pSelected->SetSelected(false);
+
+            m_pSelected = pHit;
+            pHit->SetSelected(true);
+            m_ToolMode = ToolMode::MOVING;
+            m_draggingStartPt = pt;
+        }
+        else {
+            // 허공 선택 시
+            if (m_pSelected)
+            { 
+                m_pSelected->SetSelected(false);
+                m_pSelected = nullptr;
+            }
+            m_ToolMode = ToolMode::IDLE;
+        }
+
         return;
     }
     else if (m_BrushMode == BrushMode::DELETE_SHAPE)
     {
-        //TODO: 도형 삭제 추가
+        int nHandleIdx = -1;
+        CShape* pHit = HitTestAll(pt, nHandleIdx);
+
+        if (pHit) {
+            auto it = std::find(m_vecShapes.begin(), m_vecShapes.end(), pHit);
+            if (it != m_vecShapes.end()) {
+                delete* it;
+                m_vecShapes.erase(it);
+            }
+
+            m_pSelected = nullptr;
+        }
+        return;
+    }
+    else if (m_BrushMode == BrushMode::MULTIMOVE)
+    {
+        m_ToolMode = ToolMode::MOVING;
         return;
     }
 
@@ -54,7 +110,7 @@ void CCanvas::OnLeftClickDown(POINT pt)
     switch (m_BrushMode) 
     {
     case BrushMode::DOT: {
-        DotShape* s = new DotShape(pt);
+        CDotShape* s = new CDotShape(pt);
         m_vecShapes.push_back(s);
         break;
     }
@@ -73,6 +129,12 @@ void CCanvas::OnLeftClickDown(POINT pt)
         break;
     }
     case BrushMode::TRIANGLE: {
+        if (m_vecDrawPTs.size() == 2)
+        {
+            if(CTriangleShape::IsCollinear(m_vecDrawPTs[0], m_vecDrawPTs[1], pt))
+                break;
+        }
+
         m_vecDrawPTs.push_back(pt);
         if (m_vecDrawPTs.size() == 3) {
             FinalizeShape();
@@ -93,10 +155,77 @@ void CCanvas::OnLeftClickDown(POINT pt)
 void CCanvas::OnMouseMove(POINT pt) 
 {
     m_PreviewPT = pt;
+
+    if (m_ToolMode == ToolMode::MOVING) {
+        if (m_BrushMode == BrushMode::MULTIMOVE)
+        {
+            int dx = pt.x - m_LastMousePT.x;
+            int dy = pt.y - m_LastMousePT.y;
+            for (auto& pShape : m_vecMultiMove)
+            {
+                pShape->Move(dx, dy);
+            }
+        }
+        else if(m_pSelected)
+        {
+            int dx = pt.x - m_LastMousePT.x;
+            int dy = pt.y - m_LastMousePT.y;
+            m_pSelected->Move(dx, dy);
+        }
+    }
+    else if (m_ToolMode == ToolMode::EDIT && m_pSelected) {
+        m_pSelected->MoveHandle(m_CurrentHandleIdx, pt);
+    }
+
+    m_LastMousePT = pt;
+}
+
+CShape* CCanvas::HitTestAll(POINT pt, int& nHandleIdx)
+{
+    //핸들 가져오기
+    if (m_pSelected) {
+        auto handles = m_pSelected->GetHandles();
+        for (const auto& h : handles) {
+            if (abs(pt.x - h.pos.x) <= HIT_TOLERANCE && abs(pt.y - h.pos.y) <= HIT_TOLERANCE) {
+                nHandleIdx = h.index;
+                return m_pSelected;
+            }
+        }
+    }
+
+    // 역순으로 마지막에 생성된 애들부터
+    for (int i = m_vecShapes.size() - 1; i >= 0; --i) {
+        if (m_vecShapes[i]->IsHit(pt))
+            return m_vecShapes[i];
+    }
+
+    return nullptr;
 }
 
 void CCanvas::OnLeftClickUp(POINT pt) 
 {
+    if (m_BrushMode == BrushMode::MULTIMOVE)
+    {
+        int nHandleIdx = -1;
+        CShape* pHit = HitTestAll(pt, nHandleIdx);
+
+        if (pHit) {
+            if (pHit->IsSelected())
+            {
+                pHit->SetSelected(false);
+                auto it = std::find(m_vecMultiMove.begin(), m_vecMultiMove.end(), pHit);
+                if (it != m_vecMultiMove.end()) {
+                    m_vecMultiMove.erase(it);
+                }
+            }
+            else
+            {
+                pHit->SetSelected(true);
+                m_vecMultiMove.push_back(pHit);
+            }
+        }
+    }
+
     if (m_ToolMode == ToolMode::MOVING || m_ToolMode == ToolMode::EDIT) {
         m_ToolMode = ToolMode::IDLE;
     }
@@ -104,29 +233,29 @@ void CCanvas::OnLeftClickUp(POINT pt)
 
 void CCanvas::FinalizeShape() 
 {
-    Shape* pShape = nullptr;
+    CShape* pShape = nullptr;
     switch (m_BrushMode) 
     {
     case BrushMode::LINE:
-        pShape = new LineShape(m_vecDrawPTs[0], m_vecDrawPTs[1]);
+        pShape = new CLineShape(m_vecDrawPTs[0], m_vecDrawPTs[1]);
         break;
     case BrushMode::CIRCLE: 
     {
         double dx = m_vecDrawPTs[1].x - m_vecDrawPTs[0].x;
         double dy = m_vecDrawPTs[1].y - m_vecDrawPTs[0].y;
         int r = (int)sqrt(dx * dx + dy * dy);
-        pShape = new CircleShape(m_vecDrawPTs[0], r);
+        pShape = new CCircleShape(m_vecDrawPTs[0], r);
         break;
     }
     case BrushMode::TRIANGLE: 
     {
-        TriangleShape* tri = new TriangleShape(m_vecDrawPTs[0], m_vecDrawPTs[1], m_vecDrawPTs[2]);
+        CTriangleShape* tri = new CTriangleShape(m_vecDrawPTs[0], m_vecDrawPTs[1], m_vecDrawPTs[2]);
         pShape = tri;
         break;
     }
     case BrushMode::RECTANGLE: 
     {
-        RectShape* rect = new RectShape(m_vecDrawPTs[0], m_vecDrawPTs[1]);
+        CRectShape* rect = new CRectShape(m_vecDrawPTs[0], m_vecDrawPTs[1]);
         pShape = rect;
         break;
     }
@@ -147,7 +276,7 @@ void CCanvas::EraseAll()
         delete shape;
 
     m_vecShapes.clear();
-    m_bSelected = nullptr;
+    m_pSelected = nullptr;
     m_vecDrawPTs.clear();
     m_bPreview = false;
 }

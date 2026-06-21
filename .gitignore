@@ -30,3 +30,18 @@
 *.exe
 *.out
 *.app
+
+
+# debug
+*.tlog
+*.log
+*.recipe
+*.ilk
+*.idb
+*.pdb
+
+# .vs folder
+.vs/
+*.suo
+*.debug
+*.vsidx
