@@ -31,3 +31,5 @@ WINAPI 및 GDI로 그리기 구현 시 몇몇 조건 + InvalidateRect 호출 →
 4. 편집 및 이동 기능
 - 단순한 앱이기 때문에 클릭 시 전체 도형에 대해 그려진 순서의 역순으로 HitTest 실행하여 선택되었는지 확인 ( 클릭의 용이를 위해 TOLERANCE 적용)
 - 좀 더 무거워진다면 앱을 범위별로 나눠서 일부에 대해서만 HitTest를 진행하거나 ZOrder를 추가하는 것도 좋을 것 같습니다.
+
+![Class Diagram](https://github.com/grujam/ToyProject/blob/master/Toyproject.drawio.png?raw=true)
